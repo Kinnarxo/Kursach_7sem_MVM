@@ -176,33 +176,35 @@ def _bicg_stab_spec(x0, x1, y0, y1, hx, hy, eps, f, g, u_fun):
     return u, mistake_second_norm**0.5, scalar(r, r)**0.5, break_iter
 
 
-def fill_G(f, y, x, hy, hx, N_, _N, matr):
-    if y == -1:
+def fill_G(f, i, j, hy, hx, N_, _N, matr):
+    global x0, y0, x1, y1
+    if i == -1:
         for i in range(N_, _N):
-            matr[i][x] = f(i*hy, x*hx)
+            matr[i][j] = f(y0 + i*hy, x0 + j*hx)
     else:
-        for i in range(N_, _N):
-            matr[y][i] = f(y*hy, i*hx)
+        for j in range(N_, _N):
+            matr[i][j] = f(y0 + i*hy, x0 + j*hx)
 
 def jac_specified(f, u):
-    global x0, x1, y0, y1, hy, hx, N1, N2, eps, form, form_size1, form_size2   # x0, x1, y0, y1 - размер одной подобласти
-    u_matrix = np.zeros((int(form_size1 * (y1 - y0) / hy + 1), int(form_size2 * (x1 - x0) / hx + 1)))
-    N1 = int((y1 - y0) / hy)
+    global x0, x1, y0, y1, hy, hx, eps, form, form_size1, form_size2   # x0, x1, y0, y1 - размер одной подобласти
+    N1 = int((y1 - y0) / hy)    # Размеры одной подобласти
     N2 = int((x1 - x0) / hx)
+    u_matrix = np.zeros((form_size1 * N1 + 1, form_size2 * N2 + 1))
 
+    # Заполнение граничных точек по всей карте области
     for ii in range(form_size1):
         for jj in range(form_size2):
             if form[ii][jj] == 0:
                 continue
-            if ii == 0 or ii == form_size1 - 1:
+            if ii == 0 or ii == form_size1 - 1: # Верх или низ области
                 fill_G(u, (ii + int(ii == form_size1 - 1))*N1, -1, hy, hx, jj*N2, (jj+1)*N2, u_matrix)
             if jj == 0 or jj == form_size2 - 1:
                 fill_G(u, -1, (jj + int(jj == form_size2 - 1))*N2, hy, hx, ii*N1, (ii+1)*N1, u_matrix)
 
             if (ii + 1 < form_size1) and (form[ii + 1][jj] == 0):
-                fill_G(u, (ii+1) * N1 + 1, -1, hy, hx, jj * N2, (jj + 1) * N2, u_matrix)
+                fill_G(u, (ii+1) * N1, -1, hy, hx, jj * N2, (jj + 1) * N2, u_matrix)
             if (ii - 1 > 0) and (form[ii - 1][jj] == 0):
-                fill_G(u, ii * N1 + 1, -1, hy, hx, jj * N2, (jj + 1) * N2, u_matrix)
+                fill_G(u, ii * N1, -1, hy, hx, jj * N2, (jj + 1) * N2, u_matrix)
 
             if (jj + 1 < form_size2) and (form[ii][jj + 1] == 0):
                 fill_G(u, -1, (jj + 1)*N2 + 1, hy, hx, ii*N1, (ii+1)*N1, u_matrix)
@@ -221,7 +223,7 @@ def jac_specified(f, u):
                 fill_G(u, ii * N1 + 1, -1, hy, hx, jj * N2, (jj + 1) * N2, u_matrix)
             if (jj + 1 < form_size2) and (form[ii][jj + 1] == 1):
                 fill_G(u, -1, jj*N2 + 1, hy, hx, ii*N1, (ii+1)*N1, u_matrix)
-
+    draw_graph(u_matrix, hy, hx, -1)
     flag = False
     q = 0
     while not flag:
@@ -304,11 +306,15 @@ def solve_clear(u):
 
 
 def draw_graph(digital, hy, hx, mode = 0):
-    global x0, x1, y0, y1, N1, N2, form_size1, form_size2   # x0, x1, y0, y1 - размер одной подобласти
+    global x0, x1, y0, y1, form_size1, form_size2   # x0, x1, y0, y1 - размер одной подобласти
     if mode == -1:
-        yY, xX = [y0 + i * hy for i in range(form_size1 * N1 + 1)], [x0 + j * hx for j in range(form_size2 * N2 + 1)]
+        Ny = form_size1 * int((y1 - y0) / hy) + 1
+        Nx = form_size2 * int((x1 - x0) / hx) + 1
+        yY, xX = [y0 + i * hy for i in range(Ny)], [x0 + j * hx for j in range(Nx)]
     else:
-        yY, xX = [y0 + i * hy for i in range(N1+1)], [x0 + j * hx for j in range(N2+1)]
+        Ny = int((y1 - y0) / hy) + 1
+        Nx = int((x1 - x0) / hx) + 1
+        yY, xX = [y0 + i * hy for i in range(Ny)], [x0 + j * hx for j in range(Nx)]
     xgrid, ygrid = np.meshgrid(xX, yY)
     fig = plt.figure()
     axes = fig.add_subplot(projection='3d')
@@ -328,16 +334,18 @@ mas_funs = [[u_1, fi_1, g_1], [u_2, fi_2, g_2], [u_3, fi_3, g_3], [u_4, fi_4, g_
 [u, f, g] = mas_funs[0]
 
 clear = solve_clear(u)
-digital1 = jac(f, g)
-digital1_alt = _bicg_stab_spec(x0, x1, y0, y1, hx, hy, eps, f, g, u)
-
 digital2 = jac_specified(f, g)
+draw_graph(digital2, hy, hx, -1)
+
+
 # print(clear[7])
 # print(digital2[7])
 # print('Norm', np.linalg.norm(digital2 - clear, ord='fro'))
+exit()
+digital1 = jac(f, g)
+digital1_alt = _bicg_stab_spec(x0, x1, y0, y1, hx, hy, eps, f, g, u)
 draw_graph(clear, hy, hx)
 draw_graph(digital1, hy, hx)
 draw_graph(digital1_alt[0], hy, hx)
-draw_graph(digital2, hy, hx, -1)
 # print('eps', eps, 'step', h)
 # Метод варианта из ЛР3
