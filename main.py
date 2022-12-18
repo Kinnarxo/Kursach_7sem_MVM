@@ -9,15 +9,24 @@ form = [
     [0, 1, 1, 1, 1],
     [0, 0, 1, 1, 0]
 ]
+form = [
+    [0, 0, 1, 1, 0],
+    [0, 1, 1, 1, 1],
+    [1, 1, 1, 0, 1],
+    [1, 1, 0, 0, 1]
+]
 form_size1 = 4
 form_size2 = 5
-#form = np.ones((form_size1, form_size2))
+
+# form = np.ones((form_size1, form_size2))
 # form = [
 #     [1, 1, 1],
 #     [0, 0, 0]
 # ]
 # form_size1 = 2
 # form_size2 = 3
+
+#form = np.ones((form_size1, form_size2))
 
 
 def u_1(y, x, a=2, b=5, c=7):
@@ -141,7 +150,7 @@ def _bicg_stab(x0, x1, y0, y1, hx, hy, eps, f, g, u_fun):
     x = u.copy()
     # Сформировали начальное приближение решения - матрицу u, c которой будем работать как с вектором, т.е. операция матричного умножения A на u будет действовать на матрциу u как на вектор
     # Сформировали вектор правой части - f(y,x)
-
+    draw_graph(u, hy, hx)
     Au = multiply_matr_as_vec2(x, Ny, Nx, hy, hx)
     r = b - Au
     r_ = r.copy()
@@ -208,38 +217,27 @@ def scalar_spec(obj1, obj2):
     sum = 0
     N1 = int((obj1.shape[0] - 1)/form_size1)
     N2 = int((obj1.shape[1] - 1)/form_size2)
-    flag = False
     for ii in range(form_size1):
         for jj in range(form_size2):
             if form[ii][jj] == 0:
                 continue
-            flag = False
             for i in range(ii * N1 + 1, ii * N1 + N1):
                 for j in range(jj * N2 + 1, jj * N2 + N2):
                     sum += obj1[i, j] * obj2[i, j]
-            if (ii < form_size1 - 1) and (form[ii + 1][jj] == 1) and jj < form_size2 - 1:
-                # если текущая подобласть не является последней по вертикали и по горизонтали и следующая подобласть по вертикали является частью формы
-                flag = True    # флаг о том, что угловая "граничная" точка посчитана и считать её второй раз не надо
-                for j in range(jj * N2 + 1, jj * N2 + N2 + 1):
-                    i = ii * N1 + N1
-                    sum += obj1[i, j] * obj2[i, j]
-            elif (ii < form_size1 - 1) and (form[ii + 1][jj] == 1):
+            if (ii < form_size1 - 1) and (form[ii + 1][jj] == 1):
                 # если текущая подобласть не является последней по вертикали, но является последней по горизонтали и следующая подобласть по вертикали является частью формы
                 for j in range(jj * N2 + 1, jj * N2 + N2):
                     i = ii * N1 + N1
                     sum += obj1[i, j] * obj2[i, j]
 
-            if (jj < form_size2 - 1) and (form[ii][jj + 1] == 1) and ii < form_size1 - 1 and (not flag):
-                # если текущая подобласть не является последней по вертикали и по горизонтали и следующая подобласть по горизонтали является частью формы
-                for i in range(ii * N1 + 1, ii * N1 + N1 + 1):
-                    j = jj * N2 + N2
-                    sum += obj1[i, j] * obj2[i, j]
-            elif (jj < form_size2 - 1) and (form[ii][jj + 1] == 1):
+            if (jj < form_size2 - 1) and (form[ii][jj + 1] == 1):
                 # если текущая подобласть не является последней по горизонтали, но является последней по вертикали и следующая подобласть по горизонтали является частью формы
                 for i in range(ii * N1 + 1, ii * N1 + N1):
                     j = jj * N2 + N2
                     sum += obj1[i, j] * obj2[i, j]
 
+            if (jj < form_size2 - 1) and (form[ii][jj + 1] == 1) and (ii < form_size1 - 1) and (form[ii + 1][jj] == 1):
+                sum += obj1[(ii + 1) * N1, (jj + 1) * N2] * obj2[(ii + 1) * N1, (jj + 1) * N2]
     return sum
 
 
@@ -251,32 +249,23 @@ def multiply_matr_as_vec2_spec(oper2, N1, N2, hy, hx):
         for jj in range(form_size2):
             if form[ii][jj] == 0:
                 continue
-            flag = False
             for i in range(ii * N1 + 1, ii * N1 + N1):
                 for j in range(jj * N2 + 1, jj * N2 + N2):
                     answer[i, j] = right_part2(oper2, hy, hx, i, j)
-            if (ii < form_size1 - 1) and (form[ii + 1][jj] == 1) and jj < form_size2 - 1:
-                # если текущая подобласть не является последней по вертикали и по горизонтали и следующая подобласть по вертикали является частью формы
-                flag = True    # флаг о том, что угловая "граничная" точка посчитана и считать её второй раз не надо
-                for j in range(jj * N2 + 1, jj * N2 + N2 + 1):
-                    i = ii * N1 + N1
-                    answer[i, j] = right_part2(oper2, hy, hx, i, j)
-            elif (ii < form_size1 - 1) and (form[ii + 1][jj] == 1):
+            if (ii < form_size1 - 1) and (form[ii + 1][jj] == 1):
                 # если текущая подобласть не является последней по вертикали, но является последней по горизонтали и следующая подобласть по вертикали является частью формы
                 for j in range(jj * N2 + 1, jj * N2 + N2):
                     i = ii * N1 + N1
                     answer[i, j] = right_part2(oper2, hy, hx, i, j)
 
-            if (jj < form_size2 - 1) and (form[ii][jj + 1] == 1) and ii < form_size1 - 1 and (not flag):
-                # если текущая подобласть не является последней по вертикали и по горизонтали и следующая подобласть по горизонтали является частью формы
-                for i in range(ii * N1 + 1, ii * N1 + N1 + 1):
-                    j = jj * N2 + N2
-                    answer[i, j] = right_part2(oper2, hy, hx, i, j)
-            elif (jj < form_size2 - 1) and (form[ii][jj + 1] == 1):
+            if (jj < form_size2 - 1) and (form[ii][jj + 1] == 1):
                 # если текущая подобласть не является последней по горизонтали, но является последней по вертикали и следующая подобласть по горизонтали является частью формы
                 for i in range(ii * N1 + 1, ii * N1 + N1):
                     j = jj * N2 + N2
                     answer[i, j] = right_part2(oper2, hy, hx, i, j)
+
+            if (jj < form_size2 - 1) and (form[ii][jj + 1] == 1) and (ii < form_size1 - 1) and (form[ii + 1][jj] == 1):
+                answer[(ii + 1) * N1, (jj + 1) * N2] = right_part2(oper2, hy, hx, (ii + 1) * N1, (jj + 1) * N2)
     return answer
 
 
@@ -287,50 +276,49 @@ def _bicg_stab_spec(x0, x1, y0, y1, hx, hy, eps, f, g, u_fun):
     Nfull_y = Ny * form_size1 + 1
     Nfull_x = Nx * form_size2 + 1
     u_matrix = np.zeros((Nfull_y, Nfull_x))
-    b = solve_clear_spec(f)
+    b = form_b(f)
 
     # Заполнение граничных точек по всей карте области
     for ii in range(form_size1):
         for jj in range(form_size2):
             if form[ii][jj] == 0:
                 continue
-            if ii == 0 or ii == form_size1 - 1:  # Верх или низ области
-                fill_G(u_fun, (ii + int(ii == form_size1 - 1)) * Ny, -1, hy, hx, jj * Nx, (jj + 1) * Nx, u_matrix)
-            if jj == 0 or jj == form_size2 - 1:
-                fill_G(u_fun, -1, (jj + int(jj == form_size2 - 1)) * Nx, hy, hx, ii * Ny, (ii + 1) * Ny, u_matrix)
+            if ii == 0:  # Верх области
+                fill_G(u_fun, ii * Ny, -1, hy, hx, jj * Nx, (jj + 1) * Nx, u_matrix)
+            if ii == form_size1 - 1:  # Низ области
+                fill_G(u_fun, (ii + 1) * Ny, -1, hy, hx, jj * Nx, (jj + 1) * Nx, u_matrix)
+            if jj == 0:     # Левая граница области
+                fill_G(u_fun, -1, jj * Nx, hy, hx, ii * Ny, (ii + 1) * Ny, u_matrix)
+            if jj == form_size2 - 1:    # Правая граница области
+                fill_G(u_fun, -1, (jj + 1) * Nx, hy, hx, ii * Ny, (ii + 1) * Ny, u_matrix)
 
-            if (ii + 1 < form_size1) and (form[ii + 1][
-                                              jj] == 0):  # Если следующая клетка области не является частью области задания, заполняем границу с ней
+            if (ii + 1 < form_size1) and (form[ii + 1][jj] == 0):  # Если следующая клетка области не является частью области задания, заполняем границу с ней
                 fill_G(u_fun, (ii + 1) * Ny, -1, hy, hx, jj * Nx, (jj + 1) * Nx, u_matrix)
             if (ii > 0) and (form[ii - 1][jj] == 0):  # Аналогично с предыдущей областью
                 fill_G(u_fun, ii * Ny, -1, hy, hx, jj * Nx, (jj + 1) * Nx, u_matrix)
 
-            if (jj + 1 < form_size2) and (form[ii][jj + 1] == 0):
+            if (jj + 1 < form_size2) and (form[ii][jj + 1] == 0):   # То же самое по горизонтали
                 fill_G(u_fun, -1, (jj + 1) * Nx, hy, hx, ii * Ny, (ii + 1) * Ny, u_matrix)
             if (jj > 0) and (form[ii][jj - 1] == 0):
                 fill_G(u_fun, -1, jj * Nx, hy, hx, ii * Ny, (ii + 1) * Ny, u_matrix)
+
     for ii in range(form_size1):  # задаём узлы
         for jj in range(form_size2):
             if form[ii][jj] == 0:
                 continue
             for i in range(ii * Ny + 1, ii * Ny + Ny):
                 for j in range(jj * Nx + 1, jj * Nx + Nx):
-                    u_matrix[i][j] = u_matrix[ii * Ny][j]
+                    u_matrix[i][j] = u_matrix[i][jj * Nx]
             if (jj + 1 < form_size2) and (form[ii][jj + 1] == 1):
-                if ii == form_size1 - 1 or jj == form_size2 - 1:
-                    range_end = (ii + 1) * Ny
-                else:
-                    range_end = (ii + 1) * Ny + 1
-                for i in range(ii * Ny, range_end):
+                for i in range(ii * Ny + 1, (ii + 1) * Ny):
                     u_matrix[i][(jj + 1) * Nx] = u_matrix[ii * Ny][(jj + 1) * Nx]
             if (ii + 1 < form_size1) and (form[ii + 1][jj] == 1):
-                if jj == form_size2 - 1 or ii == form_size1 - 1:
-                    range_end = (jj + 1) * Nx
-                else:
-                    range_end = (jj + 1) * Nx + 1
-                for j in range(jj * Nx, range_end):
+                for j in range(jj * Nx + 1, (jj + 1) * Nx):
                     u_matrix[(ii + 1) * Ny][j] = u_matrix[(ii + 1) * Ny][jj * Nx]
-    draw_graph(u_matrix, hy, hx, mode=-1)
+            if (ii + 1 < form_size1) and (form[ii + 1][jj] == 1) and (jj + 1 < form_size2) and (form[ii][jj + 1] == 1):
+                u_matrix[(ii + 1) * Ny, (jj + 1) * Nx] = u_matrix[(ii + 1) * Ny][jj * Nx]
+
+    #draw_graph(u_matrix, hy, hx, mode=-1)
     # Задали начальное приближение
     x = u_matrix.copy()
     Au = multiply_matr_as_vec2_spec(u_matrix, Ny, Nx, hy, hx)
@@ -345,11 +333,11 @@ def _bicg_stab_spec(x0, x1, y0, y1, hx, hy, eps, f, g, u_fun):
         Ap = multiply_matr_as_vec2_spec(p, Ny, Nx, hy, hx)
         al = scalar_spec(r, r_) / scalar_spec(Ap, r_)
         s = r - al * Ap
-        print('al')
-        print(al)
-        print('Ap')
-        my_print(Ap)
-        print('\n\n\n')
+        # print('al')
+        # print(al)
+        # print('Ap')
+        # my_print(Ap)
+        # print('\n\n\n')
         As = multiply_matr_as_vec2_spec(s, Ny, Nx, hy, hx)
         w = scalar_spec(As, s) / scalar_spec(As, As)
         x = x + al * p + w * s
@@ -363,24 +351,39 @@ def _bicg_stab_spec(x0, x1, y0, y1, hx, hy, eps, f, g, u_fun):
             break
         bt = scalar_spec(r, r_) * al / (scalar_spec(r_prev, r_) * w)
         p = r + bt * (p - w * Ap)
-    print(scalar_spec(r, r) ** 0.5)
-    for i in range(1, Nfull_y - 1):
-        for j in range(1, Nfull_x - 1):
-            u_matrix[i, j] = x[i, j]
+    for ii in range(form_size1):  # задаём узлы
+        for jj in range(form_size2):
+            if form[ii][jj] == 0:
+                continue
+            for i in range(ii * Ny + 1, ii * Ny + Ny):
+                for j in range(jj * Nx + 1, jj * Nx + Nx):
+                    u_matrix[i][j] = x[i, j]
+            if (jj + 1 < form_size2) and (form[ii][jj + 1] == 1):
+                for i in range(ii * Ny + 1, (ii + 1) * Ny):
+                    u_matrix[i][(jj + 1) * Nx] = x[i, (jj + 1) * Nx]
+            if (ii + 1 < form_size1) and (form[ii + 1][jj] == 1):
+                for j in range(jj * Nx + 1, (jj + 1) * Nx):
+                    u_matrix[(ii + 1) * Ny][j] = x[(ii + 1) * Ny, j]
+            if (ii + 1 < form_size1) and (form[ii + 1][jj] == 1) and (jj + 1 < form_size2) and (form[ii][jj + 1] == 1):
+                    u_matrix[(ii + 1) * Ny][(jj + 1) * Nx] = x[(ii + 1) * Ny][(jj + 1) * Nx]
+
     return u_matrix, break_iter
 
 
 def jac_specified(f, u):
     global x0, x1, y0, y1, hy, hx, eps, form, form_size1, form_size2  # x0, x1, y0, y1 - размер одной подобласти
-    N1 = int((y1 - y0) / hy)  # Размеры одной подобласти
-    N2 = int((x1 - x0) / hx)
+    Ny = N1 = int((y1 - y0) / hy)  # Размеры одной подобласти
+    Nx = N2 = int((x1 - x0) / hx)
     u_matrix = np.zeros((form_size1 * N1 + 1, form_size2 * N2 + 1))
 
+    masses_u = []
+    it = 0
     # Заполнение граничных точек по всей карте области
     for ii in range(form_size1):
         for jj in range(form_size2):
             if form[ii][jj] == 0:
                 continue
+            masses_u[0] = np.zeros((Ny + 1, Nx + 1))
             if ii == 0 or ii == form_size1 - 1:  # Верх или низ области
                 fill_G(u, (ii + int(ii == form_size1 - 1)) * N1, -1, hy, hx, jj * N2, (jj + 1) * N2, u_matrix)
             if jj == 0 or jj == form_size2 - 1:
@@ -402,24 +405,17 @@ def jac_specified(f, u):
         for jj in range(form_size2):
             if form[ii][jj] == 0:
                 continue
-            for i in range(ii * N1 + 1, ii * N1 + N1):
-                for j in range(jj * N2 + 1, jj * N2 + N2):
-                    u_matrix[i][j] = u_matrix[ii * N1][j]
+            for i in range(ii * Ny + 1, ii * Ny + Ny):
+                for j in range(jj * Nx + 1, jj * Nx + Nx):
+                    u_matrix[i][j] = u_matrix[ii * Ny][j]
             if (jj + 1 < form_size2) and (form[ii][jj + 1] == 1):
-                if ii == form_size1 - 1 or jj == form_size2 - 1:
-                    range_end = (ii + 1) * N1
-                else:
-                    range_end = (ii + 1) * N1 + 1
-                for i in range(ii * N1, range_end):
-                    u_matrix[i][(jj + 1) * N2] = u_matrix[ii * N1][(jj + 1) * N2]
+                for i in range(ii * Ny + 1, (ii + 1) * Ny):
+                    u_matrix[i][(jj + 1) * Nx] = u_matrix[ii * Ny][(jj + 1) * Nx]
             if (ii + 1 < form_size1) and (form[ii + 1][jj] == 1):
-                if jj == form_size2 - 1 or ii == form_size1 - 1:
-                    range_end = (jj + 1) * N2
-                else:
-                    range_end = (jj + 1) * N2 + 1
-                for j in range(jj * N2, range_end):
-                    u_matrix[(ii + 1) * N1][j] = u_matrix[(ii + 1) * N1][jj * N2]
-
+                for j in range(jj * Nx + 1, (jj + 1) * Nx):
+                    u_matrix[(ii + 1) * Ny][j] = u_matrix[(ii + 1) * Ny][jj * Nx]
+            if (ii + 1 < form_size1) and (form[ii + 1][jj] == 1) and (jj + 1 < form_size2) and (form[ii][jj + 1] == 1):
+                u_matrix[(ii + 1) * Ny, (jj + 1) * Nx] = u_matrix[(ii + 1) * Ny][jj * Nx]
 
     #draw_graph(u_matrix, hy, hx, -1)
     # Завершили построение области
@@ -444,18 +440,7 @@ def jac_specified(f, u):
                         if abs(u_matrix[i][j] - old_u_matrix[i][j]) > max_delta:
                             max_delta = abs(u_matrix[i][j] - old_u_matrix[i][j])
 
-                if (ii < form_size1 - 1) and (form[ii + 1][jj] == 1) and jj < form_size2 - 1:
-# если текущая подобласть не является последней по вертикали и по горизонтали и следующая подобласть по вертикали является частью формы
-                    for j in range(jj * N2 + 1, jj * N2 + N2 + 1):
-                        i = ii * N1 + N1
-                        u_matrix[i][j] = (1 / 4) * (
-                                old_u_matrix[i + 1][j] + old_u_matrix[i - 1][j] + old_u_matrix[i][j - 1] +
-                                old_u_matrix[i][
-                                    j + 1]) + (h ** 2 / 4) * f(i * h, j * h)
-                        sum_delta += (u_matrix[i][j] - old_u_matrix[i][j]) ** 2
-                        if abs(u_matrix[i][j] - old_u_matrix[i][j]) > max_delta:
-                            max_delta = abs(u_matrix[i][j] - old_u_matrix[i][j])
-                elif (ii < form_size1 - 1) and (form[ii + 1][jj] == 1):
+                if (ii < form_size1 - 1) and (form[ii + 1][jj] == 1):
 # если текущая подобласть не является последней по вертикали и следующая подобласть по вертикали является частью формы
                     for j in range(jj * N2 + 1, jj * N2 + N2):
                         i = ii * N1 + N1
@@ -467,18 +452,7 @@ def jac_specified(f, u):
                         if abs(u_matrix[i][j] - old_u_matrix[i][j]) > max_delta:
                             max_delta = abs(u_matrix[i][j] - old_u_matrix[i][j])
 
-                if (jj < form_size2 - 1) and (form[ii][jj + 1] == 1) and ii < form_size1 - 1:
-# если текущая подобласть не является последней по вертикали и по горизонтали и следующая подобласть по горизонтали является частью формы
-                    for i in range(ii * N1 + 1, ii * N1 + N1 + 1):
-                        j = jj * N2 + N2
-                        u_matrix[i][j] = (1 / 4) * (
-                                old_u_matrix[i + 1][j] + old_u_matrix[i - 1][j] + old_u_matrix[i][j - 1] +
-                                old_u_matrix[i][
-                                    j + 1]) + (h ** 2 / 4) * f(i * h, j * h)
-                        sum_delta += (u_matrix[i][j] - old_u_matrix[i][j]) ** 2
-                        if abs(u_matrix[i][j] - old_u_matrix[i][j]) > max_delta:
-                            max_delta = abs(u_matrix[i][j] - old_u_matrix[i][j])
-                elif (jj < form_size2 - 1) and (form[ii][jj + 1] == 1):
+                if (jj < form_size2 - 1) and (form[ii][jj + 1] == 1):
 # если текущая подобласть не является последней по горизонтали и следующая подобласть по горизонтали является частью формы
                     for i in range(ii * N1 + 1, ii * N1 + N1):
                         j = jj * N2 + N2
@@ -490,8 +464,19 @@ def jac_specified(f, u):
                         if abs(u_matrix[i][j] - old_u_matrix[i][j]) > max_delta:
                             max_delta = abs(u_matrix[i][j] - old_u_matrix[i][j])
 
+                if (jj < form_size2 - 1) and (form[ii][jj + 1] == 1) and (ii < form_size1 - 1) and (form[ii + 1][jj] == 1):
+                    i = ii * N1 + N1
+                    j = jj * N2 + N2
+                    u_matrix[i][j] = (1 / 4) * (
+                            old_u_matrix[i + 1][j] + old_u_matrix[i - 1][j] + old_u_matrix[i][j - 1] +
+                            old_u_matrix[i][
+                                j + 1]) + (h ** 2 / 4) * f(i * h, j * h)
+                    sum_delta += (u_matrix[i][j] - old_u_matrix[i][j]) ** 2
+                    if abs(u_matrix[i][j] - old_u_matrix[i][j]) > max_delta:
+                        max_delta = abs(u_matrix[i][j] - old_u_matrix[i][j])
+
         if sum_delta ** 0.5 < eps: flag = True
-    return u_matrix
+    return u_matrix, q
 
 
 def jac(f, g, u_fun):
@@ -554,21 +539,47 @@ def solve_clear_spec(fun):
                     clear[i, j] = fun(y0 + i * hy, x0 + j * hx)
     return clear
 
+def form_b(fun):
+    global x0, x1, y0, y1, hy, hx, form_size1, form_size2, form
+    N1 = int((y1 - y0) / hy)
+    N2 = int((x1 - x0) / hx)
+    b = np.zeros((form_size1 * N1 + 1, form_size2 * N2 + 1))
+    for ii in range(form_size1):
+        for jj in range(form_size2):
+            if form[ii][jj] == 0:
+                continue
+            for i in range(ii * N1 + 1, ii * N1 + N1):
+                for j in range(jj * N2 + 1, jj * N2 + N2):
+                    b[i, j] = fun(y0 + i * hy, x0 + j * hx)
+    return b
 
 def draw_graph(digital, hy, hx, mode=0):
     global x0, x1, y0, y1, form_size1, form_size2  # x0, x1, y0, y1 - размер одной подобласти
     if mode == -1:
-        Ny = form_size1 * int((y1 - y0) / hy) + 1
-        Nx = form_size2 * int((x1 - x0) / hx) + 1
+        Ny_big = form_size1 * int((y1 - y0) / hy) + 1
+        Nx_big = form_size2 * int((x1 - x0) / hx) + 1
+        Ny = int((y1 - y0) / hy)
+        Nx = int((y1 - y0) / hx)
+        Z = np.zeros((Ny_big, Nx_big))
+        it = 0
+        for ii in range(form_size1):
+            for jj in range(form_size2):
+                if form[ii][jj] == 0:
+                    continue
+                for i in range(Ny):
+                    for j in range(Nx):
+                        Z[ii * Ny + i, jj * Nx + j] = digital[it][i, j]
+                it += 1
         yY, xX = [y0 + i * hy for i in range(Ny)], [x0 + j * hx for j in range(Nx)]
     else:
         Ny = int((y1 - y0) / hy) + 1
         Nx = int((x1 - x0) / hx) + 1
         yY, xX = [y0 + i * hy for i in range(Ny)], [x0 + j * hx for j in range(Nx)]
+        Z = digital.copy()
     xgrid, ygrid = np.meshgrid(xX, yY)
     fig = plt.figure()
     axes = fig.add_subplot(projection='3d')
-    axes.plot_surface(xgrid, ygrid, digital, cmap=cm.coolwarm)
+    axes.plot_surface(xgrid, ygrid, Z, cmap=cm.coolwarm)
     plt.show()
 
 
@@ -593,14 +604,28 @@ mas_hx = [0.1, 0.05, 0.01]
 # print('Norm', np.linalg.norm(digital2 - clear, ord='fro'))
 
 
+#Решение задачи для специфической области стабилизированным методом бисопряжённых градиентов
 clear = solve_clear_spec(u)
 digital2 = _bicg_stab_spec(x0, x1, y0, y1, hx, hy, eps, f, g, u)
-#digital2 = jac_specified(f, u)
+#my_print(digital2[0])
 print(scalar_spec(digital2[0] - clear, digital2[0] - clear) ** 0.5)
+draw_graph(digital2[0] - clear, hy, hx, -1)
 draw_graph(digital2[0], hy, hx, -1)
 draw_graph(clear, hy, hx, -1)
 
 exit()
+
+#Решение задачи для специфической области методом Якоби
+clear = solve_clear_spec(u)
+digital2 = jac_specified(f, u)
+my_print(digital2[0])
+print(scalar_spec(digital2[0] - clear, digital2[0] - clear) ** 0.5)
+draw_graph(digital2[0] - clear, hy, hx, -1)
+draw_graph(digital2[0], hy, hx, -1)
+draw_graph(clear, hy, hx, -1)
+
+exit()
+
 
 clear = solve_clear(u)
 digital1 = jac(f, g, u)
@@ -608,6 +633,8 @@ digital1_alt = _bicg_stab(x0, x1, y0, y1, hx, hy, eps, f, g, u)
 draw_graph(clear, hy, hx)
 draw_graph(digital1[0], hy, hx)
 draw_graph(digital1_alt[0], hy, hx)
+#print(digital1[2])
+#print(digital1_alt[1])
 # print('eps', eps, 'step', h)
 # Метод варианта из ЛР3
 
@@ -629,20 +656,21 @@ for i1 in range(2):
                 hy = mas_hy[i3]
                 hx = mas_hx[i4]
                 tm1 = time.time()
-                U_appr, M_nrm, r_nrm, iters = _bicg_stab(x0, x1, y0, y1, hx, hy, eps, f, g, u)
+                U_appr, iters = _bicg_stab_spec(x0, x1, y0, y1, hx, hy, eps, f, g, u)
                 tm2 = time.time()
+                clear = solve_clear_spec(u)
                 print('{} - {}, {} - {}'.format(x0, x1, y0 ,y1), end = ' & ')
                 print(eps, end=' & ')
                 print(hy, end=' & ')
                 print(hx, end=' & ')
-                print('%2.6e' % M_nrm, end=' & ')
+                print('%2.6e' % scalar_spec(U_appr - clear, U_appr - clear) ** 0.5, end=' & ')
                 print(iters, end=' & ')
                 print('%2.3e' % (tm2 - tm1), end=' & ')
 
                 tm1 = time.time()
-                digital1, iters, M_nrm = jac(f, g, u)
+                U_appr, iters = jac_specified(f, u)
                 tm2 = time.time()
-                print('%2.6e' % M_nrm, end=' & ')
+                print('%2.6e' % scalar_spec(U_appr - clear, U_appr - clear) ** 0.5, end=' & ')
                 print(iters, end=' & ')
                 print('%2.3e' % (tm2 - tm1), end=r'\\')
                 print()
