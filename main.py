@@ -3,6 +3,33 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import time
 
+
+class mylist:
+
+    def __init__(self, innersize):
+        self.N1 = N1 = innersize[0]
+        self.N2 = N2 = innersize[1]
+        self.data = [[np.zeros((N1 + 1, N2 + 1)) for j in range(form_size2)] for i in range(form_size1)]
+
+    def __sub__(self, other):
+        N1, N2 = self.N1, self.N2
+        res = [[np.zeros((N1 + 1, N2 + 1)) for j in range(form_size2)] for i in range(form_size1)]
+        for ii in range(form_size1):
+            for jj in range(form_size2):
+                if form[ii][jj] == 0:
+                    continue
+                for i in range(1, N1):
+                    for j in range(1, N2):
+                        res[ii][jj][i, j] = self[ii, jj][i, j] - other[ii][jj][i, j]
+        return res
+
+
+    def __setitem__(self, key, value):
+        self.data[key[0]][key[1]] = value
+
+    def __getitem__(self, key):
+        return self.data[key[0]][key[1]]
+
 form = [
     [1, 1, 0, 0, 1],
     [1, 1, 1, 0, 1],
@@ -128,7 +155,7 @@ def multiply_matr_as_vec2(oper2, N1, N2, hy, hx):
     answer = np.zeros(oper2.shape)
     for i in range(1, N1 - 1):
         for j in range(1, N2 - 1):
-            answer[i, j] = right_part2(oper2, hy, hx, i, j)
+            answer[i][j] = right_part2(oper2, hy, hx, i, j)
     return answer
 
 
@@ -196,14 +223,14 @@ def my_print(m):
     print()
 
 
-def fill_G(f, i, j, hy, hx, N_, _N, matr):
+def fill_G(f, i, j, hy, hx, N_, _N, N, matr):
     global x0, y0, x1, y1
     if i == -1:
-        for i in range(N_, _N + 1):
-            matr[i][j] = f(y0 + i * hy, x0 + j * hx)
+        for i in range(0, N + 1):
+            matr[i][j] = f(y0 + (N_ + i) * hy, x0 + (_N + j) * hx)
     else:
-        for j in range(N_, _N + 1):
-            matr[i][j] = f(y0 + i * hy, x0 + j * hx)
+        for j in range(0, N + 1):
+            matr[i][j] = f(y0 + (N_ + i) * hy, x0 + (_N + j) * hx)
 
 def right_part2(oper2, hy, hx, i, j):
     opi1 = oper2[i - 1, j]
@@ -221,51 +248,85 @@ def scalar_spec(obj1, obj2):
         for jj in range(form_size2):
             if form[ii][jj] == 0:
                 continue
-            for i in range(ii * N1 + 1, ii * N1 + N1):
-                for j in range(jj * N2 + 1, jj * N2 + N2):
-                    sum += obj1[i, j] * obj2[i, j]
+            for i in range(1, N1):
+                for j in range(1, N2):
+                    sum += obj1[ii, jj][i, j] * obj2[ii, jj][i, j]
             if (ii < form_size1 - 1) and (form[ii + 1][jj] == 1):
                 # если текущая подобласть не является последней по вертикали, но является последней по горизонтали и следующая подобласть по вертикали является частью формы
-                for j in range(jj * N2 + 1, jj * N2 + N2):
-                    i = ii * N1 + N1
-                    sum += obj1[i, j] * obj2[i, j]
+                for j in range(1, N2):
+                    i = N1
+                    sum += obj1[ii, jj][i, j] * obj2[ii, jj][i, j]
 
             if (jj < form_size2 - 1) and (form[ii][jj + 1] == 1):
                 # если текущая подобласть не является последней по горизонтали, но является последней по вертикали и следующая подобласть по горизонтали является частью формы
-                for i in range(ii * N1 + 1, ii * N1 + N1):
-                    j = jj * N2 + N2
-                    sum += obj1[i, j] * obj2[i, j]
+                for i in range(1, N1):
+                    j = N2
+                    sum += obj1[ii, jj][i, j] * obj2[ii, jj][i, j]
 
             if (jj < form_size2 - 1) and (form[ii][jj + 1] == 1) and (ii < form_size1 - 1) and (form[ii + 1][jj] == 1):
-                sum += obj1[(ii + 1) * N1, (jj + 1) * N2] * obj2[(ii + 1) * N1, (jj + 1) * N2]
+                sum += obj1[ii, jj][N1, N2] * obj2[ii, jj][N1, N2]
     return sum
-
 
 
 def multiply_matr_as_vec2_spec(oper2, N1, N2, hy, hx):
     global form_size1, form_size2, form
-    answer = np.zeros(oper2.shape)
+    answer = mylist((N1, N2))
     for ii in range(form_size1):
         for jj in range(form_size2):
             if form[ii][jj] == 0:
                 continue
-            for i in range(ii * N1 + 1, ii * N1 + N1):
-                for j in range(jj * N2 + 1, jj * N2 + N2):
-                    answer[i, j] = right_part2(oper2, hy, hx, i, j)
+            for i in range(1, N1):
+                for j in range(1, N2):
+                    answer[ii, jj][i, j] = \
+                        right_part2(oper2[ii, jj], hy, hx, i, j)
             if (ii < form_size1 - 1) and (form[ii + 1][jj] == 1):
-                # если текущая подобласть не является последней по вертикали, но является последней по горизонтали и следующая подобласть по вертикали является частью формы
-                for j in range(jj * N2 + 1, jj * N2 + N2):
-                    i = ii * N1 + N1
-                    answer[i, j] = right_part2(oper2, hy, hx, i, j)
+                # если текущая подобласть не является последней по вертикали
+                for j in range(1, N2):
+                    i = N1
+                    opi1 = oper2[ii, jj][i - 1, j]
+                    opi2 = oper2[ii + 1, jj][-i + 1, j]
+                    opi3 = oper2[ii, jj][i, j]
+                    opi4 = oper2[ii, jj][i, j - 1]
+                    opi5 = oper2[ii, jj][i, j + 1]
+                    answer[ii, jj][i, j] = -((opi1 - 2 * opi3 + opi2) / hy ** 2 + (opi4 - 2 * opi3 + opi5) / hx ** 2)
+            if (ii > 0) and (form[ii - 1][jj] == 1):  # Аналогично с предыдущей областью
+                for j in range(1, N2):
+                    i = 0
+                    opi1 = oper2[ii - 1, jj][i - 2, j]
+                    opi2 = oper2[ii, jj][i + 1, j]
+                    opi3 = oper2[ii, jj][i, j]
+                    opi4 = oper2[ii, jj][i, j - 1]
+                    opi5 = oper2[ii, jj][i, j + 1]
+                    answer[ii, jj][i, j] = -((opi1 - 2 * opi3 + opi2) / hy ** 2 + (opi4 - 2 * opi3 + opi5) / hx ** 2)
 
             if (jj < form_size2 - 1) and (form[ii][jj + 1] == 1):
-                # если текущая подобласть не является последней по горизонтали, но является последней по вертикали и следующая подобласть по горизонтали является частью формы
-                for i in range(ii * N1 + 1, ii * N1 + N1):
-                    j = jj * N2 + N2
-                    answer[i, j] = right_part2(oper2, hy, hx, i, j)
+                # если текущая подобласть не является последней по горизонтали
+                for i in range(1, N1):
+                    j = N2
+                    opi1 = oper2[ii, jj][i - 1, j]
+                    opi2 = oper2[ii, jj][i + 1, j]
+                    opi3 = oper2[ii, jj][i, j]
+                    opi4 = oper2[ii, jj][i, j - 1]
+                    opi5 = oper2[ii, jj + 1][i, -j + 1]
+                    answer[ii, jj][i, j] = -((opi1 - 2 * opi3 + opi2) / hy ** 2 + (opi4 - 2 * opi3 + opi5) / hx ** 2) #right_part2(oper2, hy, hx, i, j)
+            if (jj > 0) and (form[ii][jj - 1] == 1):
+                for i in range(1, N1):
+                    j = 0
+                    opi1 = oper2[ii, jj][i - 1, j]
+                    opi2 = oper2[ii, jj][i + 1, j]
+                    opi3 = oper2[ii, jj][i, j]
+                    opi4 = oper2[ii, jj - 1][i][N2 - 2]
+                    opi5 = oper2[ii, jj][i, j + 1]
+                    answer[ii, jj][i, j] = -((opi1 - 2 * opi3 + opi2) / hy ** 2 + (opi4 - 2 * opi3 + opi5) / hx ** 2) #right_part2(oper2, hy, hx, i, j)
+
 
             if (jj < form_size2 - 1) and (form[ii][jj + 1] == 1) and (ii < form_size1 - 1) and (form[ii + 1][jj] == 1):
-                answer[(ii + 1) * N1, (jj + 1) * N2] = right_part2(oper2, hy, hx, (ii + 1) * N1, (jj + 1) * N2)
+                opi1 = oper2[ii, jj][N1 - 1, N2]
+                opi2 = oper2[ii + 1, jj][1, N2]
+                opi3 = oper2[ii, jj][N1, N2]
+                opi4 = oper2[ii, jj][N1, N2 - 1]
+                opi5 = oper2[ii, jj + 1][N1, 1]
+                answer[ii, jj][N1, N2] = -((opi1 - 2 * opi3 + opi2) / hy ** 2 + (opi4 - 2 * opi3 + opi5) / hx ** 2)
     return answer
 
 
@@ -277,51 +338,57 @@ def _bicg_stab_spec(x0, x1, y0, y1, hx, hy, eps, f, g, u_fun):
     Nfull_x = Nx * form_size2 + 1
     u_matrix = np.zeros((Nfull_y, Nfull_x))
     b = form_b(f)
+    masses_u = mylist((Ny, Nx))
+    it = 0
 
     # Заполнение граничных точек по всей карте области
     for ii in range(form_size1):
         for jj in range(form_size2):
             if form[ii][jj] == 0:
                 continue
+            masses_u[ii, jj] = np.zeros((Ny + 1, Nx + 1))
             if ii == 0:  # Верх области
-                fill_G(u_fun, ii * Ny, -1, hy, hx, jj * Nx, (jj + 1) * Nx, u_matrix)
+                fill_G(u_fun, 0, -1, hy, hx, ii * Ny, ii * Nx, Nx, masses_u[ii, jj])
             if ii == form_size1 - 1:  # Низ области
-                fill_G(u_fun, (ii + 1) * Ny, -1, hy, hx, jj * Nx, (jj + 1) * Nx, u_matrix)
+                fill_G(u_fun, Ny, -1, hy, hx, ii * Ny, ii * Nx, Nx, masses_u[ii, jj])
             if jj == 0:     # Левая граница области
-                fill_G(u_fun, -1, jj * Nx, hy, hx, ii * Ny, (ii + 1) * Ny, u_matrix)
+                fill_G(u_fun, -1, 0, hy, hx, ii * Ny, ii * Nx, Ny, masses_u[ii, jj])
             if jj == form_size2 - 1:    # Правая граница области
-                fill_G(u_fun, -1, (jj + 1) * Nx, hy, hx, ii * Ny, (ii + 1) * Ny, u_matrix)
+                fill_G(u_fun, -1, Nx, hy, hx, ii * Ny, ii * Nx, Ny, masses_u[ii, jj])
 
             if (ii + 1 < form_size1) and (form[ii + 1][jj] == 0):  # Если следующая клетка области не является частью области задания, заполняем границу с ней
-                fill_G(u_fun, (ii + 1) * Ny, -1, hy, hx, jj * Nx, (jj + 1) * Nx, u_matrix)
+                fill_G(u_fun, Ny, -1, hy, hx, ii * Ny, ii * Nx, Nx, masses_u[ii, jj])
             if (ii > 0) and (form[ii - 1][jj] == 0):  # Аналогично с предыдущей областью
-                fill_G(u_fun, ii * Ny, -1, hy, hx, jj * Nx, (jj + 1) * Nx, u_matrix)
+                fill_G(u_fun, 0, -1, hy, hx, ii * Ny, ii * Nx, Nx, masses_u[ii, jj])
 
             if (jj + 1 < form_size2) and (form[ii][jj + 1] == 0):   # То же самое по горизонтали
-                fill_G(u_fun, -1, (jj + 1) * Nx, hy, hx, ii * Ny, (ii + 1) * Ny, u_matrix)
+                fill_G(u_fun, -1, Nx, hy, hx, ii * Ny, ii * Nx, Ny, masses_u[ii, jj])
             if (jj > 0) and (form[ii][jj - 1] == 0):
-                fill_G(u_fun, -1, jj * Nx, hy, hx, ii * Ny, (ii + 1) * Ny, u_matrix)
+                fill_G(u_fun, -1, 0, hy, hx, ii * Ny, ii * Nx, Ny, masses_u[ii, jj])
+            it += 1
 
+    it = 0
     for ii in range(form_size1):  # задаём узлы
         for jj in range(form_size2):
             if form[ii][jj] == 0:
                 continue
-            for i in range(ii * Ny + 1, ii * Ny + Ny):
-                for j in range(jj * Nx + 1, jj * Nx + Nx):
-                    u_matrix[i][j] = u_matrix[i][jj * Nx]
+            for i in range(1, Ny):
+                for j in range(1, Nx):
+                    masses_u[ii, jj][i, j] = masses_u[ii, jj][i, 0]
             if (jj + 1 < form_size2) and (form[ii][jj + 1] == 1):
-                for i in range(ii * Ny + 1, (ii + 1) * Ny):
-                    u_matrix[i][(jj + 1) * Nx] = u_matrix[ii * Ny][(jj + 1) * Nx]
+                for i in range(1, Ny):
+                    masses_u[ii, jj][i, Nx] = masses_u[ii, jj][0, Nx]
             if (ii + 1 < form_size1) and (form[ii + 1][jj] == 1):
-                for j in range(jj * Nx + 1, (jj + 1) * Nx):
-                    u_matrix[(ii + 1) * Ny][j] = u_matrix[(ii + 1) * Ny][jj * Nx]
+                for j in range(1, Nx):
+                    masses_u[ii, jj][Ny, j] = masses_u[ii, jj][Ny, 0]
             if (ii + 1 < form_size1) and (form[ii + 1][jj] == 1) and (jj + 1 < form_size2) and (form[ii][jj + 1] == 1):
-                u_matrix[(ii + 1) * Ny, (jj + 1) * Nx] = u_matrix[(ii + 1) * Ny][jj * Nx]
+                masses_u[ii, jj][Ny, Nx] = masses_u[ii, jj][Ny, 0]
+            it += 1
 
-    #draw_graph(u_matrix, hy, hx, mode=-1)
+    draw_graph(masses_u, hy, hx, mode=-1)
     # Задали начальное приближение
     x = u_matrix.copy()
-    Au = multiply_matr_as_vec2_spec(u_matrix, Ny, Nx, hy, hx)
+    Au = multiply_matr_as_vec2_spec(masses_u, Ny, Nx, hy, hx)
     r = b - Au
     r_ = r.copy()
     p = r
@@ -543,14 +610,15 @@ def form_b(fun):
     global x0, x1, y0, y1, hy, hx, form_size1, form_size2, form
     N1 = int((y1 - y0) / hy)
     N2 = int((x1 - x0) / hx)
-    b = np.zeros((form_size1 * N1 + 1, form_size2 * N2 + 1))
+    b = mylist((N1, N2))
     for ii in range(form_size1):
         for jj in range(form_size2):
             if form[ii][jj] == 0:
                 continue
-            for i in range(ii * N1 + 1, ii * N1 + N1):
-                for j in range(jj * N2 + 1, jj * N2 + N2):
-                    b[i, j] = fun(y0 + i * hy, x0 + j * hx)
+            b[ii, jj] = np.zeros((N1 + 1, N2 + 1))
+            for i in range(1, N1):
+                for j in range(1, N2):
+                    b[ii, jj][i, j] = fun(y0 + (ii * N1 + i) * hy, x0 + (jj * N2 + j) * hx)
     return b
 
 def draw_graph(digital, hy, hx, mode=0):
@@ -561,16 +629,15 @@ def draw_graph(digital, hy, hx, mode=0):
         Ny = int((y1 - y0) / hy)
         Nx = int((y1 - y0) / hx)
         Z = np.zeros((Ny_big, Nx_big))
-        it = 0
         for ii in range(form_size1):
             for jj in range(form_size2):
                 if form[ii][jj] == 0:
                     continue
                 for i in range(Ny):
                     for j in range(Nx):
-                        Z[ii * Ny + i, jj * Nx + j] = digital[it][i, j]
-                it += 1
-        yY, xX = [y0 + i * hy for i in range(Ny)], [x0 + j * hx for j in range(Nx)]
+                        Z[ii * Ny + i][jj * Nx + j] =\
+                            digital[ii, jj][i, j]
+        yY, xX = [y0 + i * hy for i in range(Ny_big)], [x0 + j * hx for j in range(Nx_big)]
     else:
         Ny = int((y1 - y0) / hy) + 1
         Nx = int((x1 - x0) / hx) + 1
@@ -596,7 +663,7 @@ mas_ends = [[0, 1, 0, 1], [0, 1, 0, 2], [1, 3, 2, 6]]
 mas_eps = [0.001, 0.000001]
 mas_hy = [0.1, 0.05, 0.01]
 mas_hx = [0.1, 0.05, 0.01]
-[u, f, g] = mas_funs[3]
+[u, f, g] = mas_funs[0]
 
 
 # print(clear[7])
